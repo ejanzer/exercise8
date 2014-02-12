@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+from random import randint
 
 def make_chains(corpus):
     """Takes an input text as a string and returns a dictionary of
@@ -14,14 +15,13 @@ def make_chains(corpus):
     d = {}
 
     # account for index out of range at the end
-    length = len(words) - 2
 
     # Iterate through the list one at a time
     # Check if that pair is in the dictionary
     # If not, add it
     # If it is, add the next word to the value list
 
-    for i in range(length):
+    for i in range(len(words) - 2):
         key = (words[i], words[i + 1])
         if not d.get(key):
             d[key] = [words[i + 2]]
@@ -38,32 +38,46 @@ def make_chains(corpus):
 def make_text(chains):
     """Takes a dictionary of markov chains and returns random text
     based off an original text."""
-    # Randomly pick a value for the key
+    # putting the keys into a list
     keys = chains.keys()
-    starting_key = keys[0]
+    # random number to find a valid index within the keys list
+    starting_index = randint(0, len(keys) - 1)
+    # using the random number to find the tuple in the list of keys
+    key = keys[starting_index]
 
-    print starting_key, chains[starting_key]
-    # When do we stop?
-    # Make a new pair of words from 2nd word of key and 
-    # randomly selected word from value.
-    # Look up that key.
-    # Repeat!
-    return None
+    # create an empty list
+    words = [key[0], key[1]]
+
+    # while the randomly chosen tuple exists in the list
+    while chains.get(key) and len(words) < 500:
+        # get a random value from the values list
+        random_number = randint(0, len(chains[key]) - 1)
+        random_word = chains[key][random_number]
+
+        # Add the selected word to the list of words
+        words.append(random_word)
+
+        # Update the key with a new pair of words from 2nd word of key and 
+        # selected word.
+        key = (key[1], random_word)
+    
+    
+    # Join list into a string
+    return ' '.join(words)
 
 
 def main():
     args = sys.argv
 
-    # Change this to read input_text from a file
     script, filename = args
     
     f = open(filename)
     input_text = f.read()
-    #print input_text
+    f.close()
 
     chain_dict = make_chains(input_text)
     random_text = make_text(chain_dict)
-    # print random_text
+    print random_text
 
 if __name__ == "__main__":
     main()
