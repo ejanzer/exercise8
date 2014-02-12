@@ -69,11 +69,14 @@ def make_text(chains):
 def main():
     args = sys.argv
 
-    script, filename = args
+    script, filename1, filename2 = args
     
-    f = open(filename)
+    f = open(filename1)
+    g = open(filename2)
     input_text = f.read()
+    input_text += g.read()
     f.close()
+    g.close()
 
     chain_dict = make_chains(input_text)
     random_text = make_text(chain_dict)
