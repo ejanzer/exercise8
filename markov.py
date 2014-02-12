@@ -3,7 +3,7 @@
 import sys
 from random import randint
 
-def make_chains(input_text):
+def make_chains(input_text, n_gram_size):
     # TODO: Make it accept an n-gram size as an argument.
     """Takes an input text as a string and returns a dictionary of
     markov chains."""
@@ -11,27 +11,23 @@ def make_chains(input_text):
     # Split text into words
     words = input_text.split()
 
-    #print words
     # create an empty dictionary
     d = {}
 
-    # account for index out of range at the end
+    # for i in length - size of what's prompted from the user (n_gram_size)
+    for i in range(len(words) - n_gram_size):
+        # build a key that's the size of the n_gram_size   
+        # within the words list, start at the index and go n_gram_sized steps
+        n_gram = words[i:i + n_gram_size]
+        # turn n_gram into a tuple
+        key = tuple(n_gram)
 
-    # Iterate through the list one at a time
-    # Check if that pair is in the dictionary
-    # If not, add it
-    # If it is, add the next word to the value list
-
-    # TODO: Make this work with other n-gram sizes.
-    for i in range(len(words) - 2):
-        key = (words[i], words[i + 1])
         if not d.get(key):
-            d[key] = [words[i + 2]]
+            # if it's not there, create the key, add whatever comes after the n-gram as a list
+            d[key] = [words[i + n_gram_size]]
         else:
-            d[key].append(words[i + 2])
-
-    #for key, value in d.iteritems():
-        #print key, value
+            # if it is there, just append whatever comes after the n-gram to the value list
+            d[key].append(words[i + n_gram_size])
 
 
     # Return the dictionary
@@ -44,10 +40,9 @@ def make_text(chains):
     # using the random number to find the tuple in the list of keys
     key = capitalized_words(chains)
 
-    # create an empty list
-    # TODO: Accept different sizes of n-grams. Use a for loop?
-    words = [key[0], key[1]]
-
+    # put the tuple with capitalized first item into a list
+    words = list(key)
+    
     # while the randomly chosen tuple exists in the list
     while chains.get(key) and tweet_sized(words):
         # get a random value from the values list
@@ -63,9 +58,9 @@ def make_text(chains):
 
         # Update the key with a new pair of words from 2nd word of key and 
         # selected word.
-        # TODO: Adjust for different n-gram sizes. key[-1]?
-        key = (key[1], random_word)
-    
+        tmp = list(key[1:])
+        tmp.append(random_word)
+        key = tuple(tmp)
     
     # Join list into a string
     return ' '.join(words)
@@ -143,7 +138,6 @@ def main():
     filenames = args[1:]
 
     # put all of the source files into one string
-    
     input_text = ""
 
     for f in filenames:
@@ -152,12 +146,16 @@ def main():
         o.close()
 
     # Prompt for size of n-gram.
-    # print "Enter size of n-gram"
-    # n_gram_size = int(raw_input("> "))
-    # TODO: yell at them to only put in an int
+    print "Enter size of n-gram"
+    input_number = raw_input("> ")
+    # error handling
+    while not input_number.isdigit():
+        print "That's a not a digit. Please enter a digit."
+        input_number = raw_input("> ")
 
-    # TODO: Pass n_gram_size to make_chains as an argument.
-    chain_dict = make_chains(input_text)
+    n_gram_size = int(input_number)
+
+    chain_dict = make_chains(input_text, n_gram_size)
     random_text = tweet_end_on_period(chain_dict)
     print random_text
 
