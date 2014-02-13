@@ -2,6 +2,8 @@
 
 import sys
 from random import randint
+import twitter
+import os
 
 def make_chains(input_text, n_gram_size):
     # TODO: Make it accept an n-gram size as an argument.
@@ -40,7 +42,7 @@ def make_text(chains):
     # using the random number to find the tuple in the list of keys
     key = capitalized_words(chains)
 
-    # put the tuple with capitalized first item into a list
+    # puts the tuple with capitalized first item into a list
     words = list(key)
     
     # while the randomly chosen tuple exists in the list
@@ -53,8 +55,12 @@ def make_text(chains):
         if end_on_period(words):
             break
 
-        # Add the selected word to the list of words
-        words.append(random_word)
+        #if words + random_word is over 140, we want to break this loop
+        if tweet_sized(words, random_word):
+            # Add the selected word to the list of words
+            words.append(random_word)
+        else:
+            break
 
         # Update the key with a new pair of words from 2nd word of key and 
         # selected word.
@@ -117,7 +123,7 @@ def tweet_end_on_period(chain_dict):
         #else:
             #print "This does not end in a period"
 
-def tweet_sized(words):
+def tweet_sized(words, appended_word):
     """If longer than 140 characters return False, otherwise return True."""
 
     # determine how many characters words consists of
@@ -129,7 +135,20 @@ def tweet_sized(words):
         return False
     else:
         # print length_of_string
-        return True        
+        return True    
+
+def tweet(text):
+    """Takes the text and tweets it on a twitter account using their API"""
+    api_key = os.environ.get("TWITTER_API_KEY")    
+    api_secret = os.environ.get("TWITTER_API_SECRET")
+    access_token = os.environ.get("TWITTER_ACCESS_TOKEN")
+    token_secret = os.environ.get("TWITTER_TOKEN_SECRET")
+
+    api=twitter.Api(api_key, api_secret, access_token, token_secret)
+    
+    print api.VerifyCredentials()
+
+    api.PostUpdate(text)
 
 def main():
     args = sys.argv
@@ -158,6 +177,7 @@ def main():
     chain_dict = make_chains(input_text, n_gram_size)
     random_text = tweet_end_on_period(chain_dict)
     print random_text
+    tweet(random_text)
 
 if __name__ == "__main__":
     main()
