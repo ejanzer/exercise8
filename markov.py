@@ -46,7 +46,7 @@ def make_text(chains):
     words = list(key)
     
     # while the randomly chosen tuple exists in the list
-    while chains.get(key) and tweet_sized(words):
+    while chains.get(key):
         # get a random value from the values list
         random_number = randint(0, len(chains[key]) - 1)
         random_word = chains[key][random_number]
@@ -146,7 +146,7 @@ def tweet(text):
 
     api=twitter.Api(api_key, api_secret, access_token, token_secret)
     
-    print api.VerifyCredentials()
+    #print api.VerifyCredentials()
 
     api.PostUpdate(text)
 
@@ -177,7 +177,19 @@ def main():
     chain_dict = make_chains(input_text, n_gram_size)
     random_text = tweet_end_on_period(chain_dict)
     print random_text
+    print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
+    verify = raw_input("> ")
+    while verify.lower() != "y":
+        if verify == 'q':
+            exit(0)
+        random_text = tweet_end_on_period(chain_dict)
+        print random_text
+        print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
+        verify = raw_input("> ")
+
     tweet(random_text)
+  
+         
 
 if __name__ == "__main__":
     main()
