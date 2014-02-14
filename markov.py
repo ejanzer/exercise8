@@ -6,7 +6,6 @@ import twitter
 import os
 
 def make_chains(input_text, n_gram_size):
-    # TODO: Make it accept an n-gram size as an argument.
     """Takes an input text as a string and returns a dictionary of
     markov chains."""
 
@@ -45,7 +44,7 @@ def make_text(chains):
     # puts the tuple with capitalized first item into a list
     words = list(key)
     
-    # while the randomly chosen tuple exists in the list
+    # while the randomly chosen tuple exists in the chains dictionary
     while chains.get(key):
         # get a random value from the values list
         random_number = randint(0, len(chains[key]) - 1)
@@ -104,10 +103,7 @@ def end_on_period(words):
     # print last_letter
 
     # if the last letter of the word ends in a period return True
-    if last_letter == "." or last_letter == "?" or last_letter == "!":
-        return True    
-
-    return False
+    return last_letter == "." or last_letter == "?" or last_letter == "!"
 
 def tweet_end_on_period(chain_dict):
     """End the tweet on a period."""
@@ -116,9 +112,7 @@ def tweet_end_on_period(chain_dict):
     while True:
         tweet = make_text(chain_dict)
         #print set_of_words
-        split_words = tweet.split()
-        #print split_words
-        if end_on_period(split_words):
+        if end_on_period([tweet]):
             return tweet
         #else:
             #print "This does not end in a period"
