@@ -5,43 +5,41 @@ from random import randint
 import twitter
 import os
 
+def clean_up_text(text):
+    words = text.split()
+    for word in words:
+        if word == 'Valentine' or word == 'Day':
+            word = word.lower()
+    return words
+
 def make_chains(input_text, n_gram_size):
     """Takes an input text as a string and returns a dictionary of
     markov chains."""
 
-    # Split text into words
-    words = input_text.split()
+    words = clean_up_text(input_text)
 
-    # create an empty dictionary
     d = {}
 
-    # for i in length - size of what's prompted from the user (n_gram_size)
+    # iterate through the words creating n-grams, stopping an n-gram short of the end
     for i in range(len(words) - n_gram_size):
-        # build a key that's the size of the n_gram_size   
-        # within the words list, start at the index and go n_gram_sized steps
-        n_gram = words[i:i + n_gram_size]
-        # turn n_gram into a tuple
-        key = tuple(n_gram)
+        # build an n-gram to serve as the key in the dictionary (as a tuple)
+        key = tuple(words[i:i + n_gram_size])
 
+        # check if the n-gram is already in the dictionary
         if not d.get(key):
-            # if it's not there, create the key, add whatever comes after the n-gram as a list
             d[key] = [words[i + n_gram_size]]
         else:
-            # if it is there, just append whatever comes after the n-gram to the value list
             d[key].append(words[i + n_gram_size])
 
-
-    # Return the dictionary
     return d
 
-def make_text(chains):
+def make_text(chains, starter_keys):
     """Takes a dictionary of markov chains and returns random text
     based off an original text."""
 
-    # using the random number to find the tuple in the list of keys
-    key = capitalized_words(chains)
+    key = get_starting_key(starter_keys)
 
-    # puts the tuple with capitalized first item into a list
+    # Initialize list with the words in the starter key
     words = list(key)
     
     # while the randomly chosen tuple exists in the chains dictionary
@@ -50,140 +48,116 @@ def make_text(chains):
         random_number = randint(0, len(chains[key]) - 1)
         random_word = chains[key][random_number]
 
-        # Call the end_on_period function
-        if end_on_period(words):
+        # If it ends in a period, break.
+        if ends_on_period(words):
             break
 
-        #if words + random_word is over 140, we want to break this loop
-        if tweet_sized(words, random_word):
-            # Add the selected word to the list of words
-            words.append(random_word)
-        else:
+        # Check if adding this word will put us over character count. If so, break.
+        if is_over_tweet_char_count(words, random_word):
             break
 
-        # Update the key with a new pair of words from 2nd word of key and 
-        # selected word.
-        tmp = list(key[1:])
-        tmp.append(random_word)
-        key = tuple(tmp)
+        words.append(random_word)
+
+        # Generate the next key from the existing key and the new word
+        new_key = list(key[1:])
+        new_key.append(random_word)
+        key = tuple(new_key)
     
-    # Join list into a string
     return ' '.join(words)
 
-def capitalized_words(d):
+def generate_starter_keys(chains):
+    # TODO: Exclude Valentine's, Day or I...?
+    starter_keys = []
+    """Create a list of all tuples that start with a capital letter."""
+    keys = chains.keys()
+
+    for key in keys:
+        if ord(key[0][0]) >= ord('A') and ord(key[0][0]) <= ord('Z'):
+            starter_keys.append(key)
+
+    return starter_keys
+
+def get_starting_key(starter_keys):
     """Returns a tuple that starts with a capital letter."""
-    # putting the keys into a list
-    keys = d.keys()
+    random_index = randint(0, len(starter_keys) - 1)
+    return starter_keys[random_index]
 
-    # Repeat until we find one that's capitalized
+def ends_on_period(words):
+    """Return true if the list of words ends in a period."""
+    return words[-1][-1] in ['!','?','.']
+
+def generate_tweet(chain_dict, starter_keys):
+    """Generate tweets until we find one that ends in a period."""
     while True:
-        # random number to find a valid index within the keys list
-        random_index = randint(0, len(keys) - 1)
-
-        # get the first letter of the first word in the randomly selected tuple
-        first_letter = keys[random_index][0][0]
-        #print first_letter
-
-        # Check the ASCII value of the first letter of the first word
-        if ord(first_letter) >= 65 and ord(first_letter) <= 90:
-            #print "It's capitalized! Returning the tuple: ",
-            #print keys[random_index]
-
-            # Return the capitalized tuple
-            return keys[random_index]
-        #else:
-            #print "Not capitalized!"
-
-def end_on_period(words):
-    """Verifies the list of words ends in a period."""
-    # Grab the last word
-    last_word = words[-1]
-    # print last_word
-    last_letter = last_word[-1]
-    # print last_letter
-
-    # if the last letter of the word ends in a period return True
-    return last_letter == "." or last_letter == "?" or last_letter == "!"
-
-def tweet_end_on_period(chain_dict):
-    """End the tweet on a period."""
-
-    # loop through each tweet until it finds one that ends in a period
-    while True:
-        tweet = make_text(chain_dict)
-        #print set_of_words
-        if end_on_period([tweet]):
+        tweet = make_text(chain_dict, starter_keys)
+        if ends_on_period([tweet]):
             return tweet
-        #else:
-            #print "This does not end in a period"
 
-def tweet_sized(words, appended_word):
-    """If longer than 140 characters return False, otherwise return True."""
+def is_over_tweet_char_count(words, appended_word):
+    """Check if the string is over the character count for twitter"""
+    return len(' '.join(words)) > 140
 
-    # determine how many characters words consists of
-    string = ' '.join(words)
-    length_of_string = len(string)
-
-    if length_of_string > 140:
-        # print length_of_string
-        return False
-    else:
-        # print length_of_string
-        return True    
-
-def tweet(text):
-    """Takes the text and tweets it on a twitter account using their API"""
+def set_up_twitter_api():
+    """Set up the twitter API using the API keys in the local environment."""
     api_key = os.environ.get("TWITTER_API_KEY")    
     api_secret = os.environ.get("TWITTER_API_SECRET")
     access_token = os.environ.get("TWITTER_ACCESS_TOKEN")
     token_secret = os.environ.get("TWITTER_TOKEN_SECRET")
 
-    api=twitter.Api(api_key, api_secret, access_token, token_secret)
-    
+    api = twitter.Api(api_key, api_secret, access_token, token_secret)
     #print api.VerifyCredentials()
 
+    return api
+
+def tweet(api, text):
+    """Tweets text using existing twitter API."""
     api.PostUpdate(text)
 
 def main():
+
+    # get filenames from command line arguments
     args = sys.argv
 
-    # accept an arbitrary number of source files
+    if len(args) == 1:
+        print "Please enter one source file as a command line argument."
+        exit(0)
+
     filenames = args[1:]
 
-    # put all of the source files into one string
     input_text = ""
 
-    for f in filenames:
-        o = open(f)
-        input_text += o.read()
-        o.close()
+    for filename in filenames:
+        with open(filename) as f:
+            input_text += f.read()
 
     # Prompt for size of n-gram.
-    print "Enter size of n-gram"
-    input_number = raw_input("> ")
-    # error handling
-    while not input_number.isdigit():
-        print "That's a not a digit. Please enter a digit."
-        input_number = raw_input("> ")
+    # print "Enter size of n-gram"
+    # input_number = raw_input("> ")
+    # # error handling
+    # while not input_number.isdigit():
+    #     print "That's a not a digit. Please enter a digit."
+    #     input_number = raw_input("> ")
 
-    n_gram_size = int(input_number)
+    # n_gram_size = int(input_number)
+    n_gram_size = 2
 
     chain_dict = make_chains(input_text, n_gram_size)
-    random_text = tweet_end_on_period(chain_dict)
-    print random_text
-    print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
-    verify = raw_input("> ")
-    while verify.lower() != "y":
-        if verify == 'q':
-            exit(0)
-        random_text = tweet_end_on_period(chain_dict)
-        print random_text
-        print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
-        verify = raw_input("> ")
+    starter_keys = generate_starter_keys(chain_dict)
+    api = set_up_twitter_api()
 
-    tweet(random_text)
-  
-         
+    while True:
+        tweet_text = generate_tweet(chain_dict, starter_keys)
+        print tweet_text
+        print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
+        ans = raw_input("> ")
+        if ans.lower() == "y":
+            tweet(api, tweet_text)
+        elif ans == 'q':
+            exit(0)
+    
 
 if __name__ == "__main__":
     main()
+
+
+
