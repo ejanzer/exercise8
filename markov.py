@@ -3,6 +3,7 @@
 import sys
 from random import randint
 import twitter
+from twilio.rest import TwilioRestClient
 import os
 
 def clean_up_text(text):
@@ -49,7 +50,7 @@ def make_text(chains, starter_keys):
         random_word = chains[key][random_number]
 
         # If it ends in a period, break.
-        if ends_on_period(words):
+        if ends_on_period(words) and len(words) > randint(1, 10):
             break
 
         # Check if adding this word will put us over character count. If so, break.
@@ -113,8 +114,25 @@ def tweet(api, text):
     """Tweets text using existing twitter API."""
     api.PostUpdate(text)
 
-def main():
+def set_up_twilio_api():
+    """Set up Twilio API using account SID and auth token from local environment."""
+    account_sid = os.environ.get('TWILIO_ACCT_SID')
+    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
 
+    client = TwilioRestClient(account_sid, auth_token)
+    return client
+
+def send_sms(client, text):
+    """Send SMS using Twilio REST API"""
+    to_number = os.environ.get('TWILIO_TO_NO')
+    from_number = os.environ.get('TWILIO_FROM_NO')
+    message = client.sms.messages.create(body=text,
+        to=to_number,
+        from_=from_number)
+
+    # print message.sid
+
+def main():
     # get filenames from command line arguments
     args = sys.argv
 
@@ -130,7 +148,7 @@ def main():
         with open(filename) as f:
             input_text += f.read()
 
-    # Prompt for size of n-gram.
+    # Prompt for size of n-gram. UNCOMMENT TO CHOOSE N-GRAM SIZE
     # print "Enter size of n-gram"
     # input_number = raw_input("> ")
     # # error handling
@@ -144,15 +162,18 @@ def main():
     chain_dict = make_chains(input_text, n_gram_size)
     starter_keys = generate_starter_keys(chain_dict)
     api = set_up_twitter_api()
+    client = set_up_twilio_api()
 
     while True:
-        tweet_text = generate_tweet(chain_dict, starter_keys)
-        print tweet_text
-        print "Do you want to tweet this? Press Y to select this tweet or press q to quit or press any other key to see another tweet"
+        text = generate_tweet(chain_dict, starter_keys)
+        print text
+        print "1 => Tweet this, 2 => Text this, q => quit, any other key => see next snippet."
         ans = raw_input("> ")
-        if ans.lower() == "y":
-            tweet(api, tweet_text)
-        elif ans == 'q':
+        if ans == "1":
+            tweet(api, text)
+        elif ans == "2":
+            send_sms(client, text)
+        elif ans == "q":
             exit(0)
     
 
