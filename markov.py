@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 
 import sys
-from random import randint
+from random import randint, shuffle
 import twitter
 from twilio.rest import TwilioRestClient
 import os
 
 def clean_up_text(text):
-    words = text.split()
+    words = randomize(text)
     for word in words:
         if word == 'Valentine' or word == 'Day':
             word = word.lower()
     return words
+
+def randomize(text):
+    words = text.split('\n')
+    shuffle(words)
+    random_string = "\n".join(words)
+    random_words = random_string.split()
+    return random_words
 
 def make_chains(input_text, n_gram_size):
     """Takes an input text as a string and returns a dictionary of
